@@ -1,6 +1,12 @@
 declare const __API_URL__: string | undefined;
 
 const API_URL = (typeof __API_URL__ === "undefined" ? "http://localhost:5000" : __API_URL__).replace(/\/$/, "");
+export const AUTH_STATE_CHANGED = "user-directory-auth-state-changed";
+
+export function clearAccessToken(): void {
+  localStorage.removeItem("accessToken");
+  window.dispatchEvent(new Event(AUTH_STATE_CHANGED));
+}
 
 export interface User {
   id: number;
@@ -51,7 +57,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...init.headers },
+      headers: { "Content-Type": "application/json", ...(localStorage.getItem("accessToken") ? { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } : {}), ...init.headers },
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
@@ -59,6 +65,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (!res.ok) throw await toApiError(res);
   return (await res.json()) as T;
+}
+
+export async function login(username: string, password: string): Promise<void> {
+  const result = await request<{ accessToken: string }>("/api/auth/login", {
+    method: "POST", body: JSON.stringify({ username, password }),
+  });
+  localStorage.setItem("accessToken", result.accessToken);
+  window.dispatchEvent(new Event(AUTH_STATE_CHANGED));
 }
 
 export const getUsers = (signal?: AbortSignal) => request<User[]>("/api/users", { signal });

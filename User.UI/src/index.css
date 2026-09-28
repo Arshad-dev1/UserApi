@@ -70,6 +70,19 @@ input {
   max-width: 520px;
 }
 
+.login-page {
+  max-width: 520px;
+  margin: 2rem auto;
+}
+
+.login-page h1 {
+  text-align: center;
+}
+
+.login-page .form {
+  margin: 0 auto;
+}
+
 .field {
   margin-bottom: 1rem;
 }

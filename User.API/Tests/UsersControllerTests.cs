@@ -5,6 +5,8 @@ using UserApi.Controllers;
 using UserApi.DB;
 using UserApi.DB.Models;
 using UserApi.Models;
+using UserApi.Services;
+using UserApi.Services.Interfaces;
 
 namespace UserApiTests
 {
@@ -23,7 +25,7 @@ namespace UserApiTests
                 .Options;
 
             _dbContext = new UserDbContext(options);
-            _controller = new UsersController(_dbContext);
+            _controller = new UsersController(new UserService(_dbContext));
         }
 
         [TestCleanup]
@@ -49,7 +51,7 @@ namespace UserApiTests
             var okResult = (OkObjectResult)result;
             Assert.AreEqual(200, okResult.StatusCode);
             var users = (List<UserResponse>)okResult.Value!;
-            Assert.AreEqual(0, users.Count);
+            Assert.IsEmpty(users);
         }
 
         [TestMethod]
@@ -74,7 +76,7 @@ namespace UserApiTests
             var okResult = (OkObjectResult)result;
             Assert.AreEqual(200, okResult.StatusCode);
             var users = (List<UserResponse>)okResult.Value!;
-            Assert.AreEqual(2, users.Count);
+            Assert.HasCount(2, users);
         }
 
         #endregion

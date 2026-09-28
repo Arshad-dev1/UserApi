@@ -1,43 +1,46 @@
-﻿# User Directory
+# User Directory
 
-A small full stack user directory with a React interface and an ASP.NET Core API. The UI lets people browse, add, and edit directory entries; the API validates and stores those records in SQLite.
+A small full stack directory application. The React and TypeScript interface signs in through the ASP.NET Core API, then manages user records stored in SQLite.
 
-## What it does
-
-- Lists users with their name, age, city, state, and pincode.
-- Adds a user through a form with inline validation and clear save feedback.
-- Edits a user from the list, loading the existing record before changes are submitted.
-- Shows loading, empty, retry, and error states when working with the API.
-- Provides a REST API for listing, reading, creating, updating, and deleting users.
-- Persists records in a local SQLite database. On startup, the API creates the database if needed and seeds sample users when the database is empty. Seeding can be disabled with `Database:Seed=false`.
-
-The API is the source of truth for data and server-side validation. The UI validates early to help people correct form input, then displays API validation errors beside the relevant fields when the server rejects a request.
-
-## Repository layout
+## Repository structure
 
 ```text
-UserApi/       ASP.NET Core API, Entity Framework Core, and SQLite
-User.UI/       React, TypeScript, and Vite web application
-UserApiTests/  MSTest tests for API controller behavior
+User.API/                 ASP.NET Core API and SQLite persistence
+  Controllers/             HTTP endpoints and authentication
+  DB/                      Entity Framework context, entities and seeding
+  Models/                  API request and response models
+  Services/                Application service implementations
+    Interfaces/            Service contracts consumed by controllers
+  Tests/                   API MSTest project and controller tests
+User.UI/                   React, TypeScript and Vite application
+UserApi.slnx               .NET solution
 ```
 
-## Requirements
+## Technology
 
-- .NET 8 SDK
-- Node.js and npm
+- .NET 8, ASP.NET Core Web API, Entity Framework Core and SQLite
+- JWT bearer authentication with role-based authorization
+- React 18, TypeScript, React Router and Vite
+- MSTest and EF Core in-memory provider for API tests; Jest and Testing Library for UI tests
 
-## Run locally
+## Setup and run
 
-Start the API from the repository root:
+Install the .NET 8 SDK, Node.js and npm. From the repository root, run the API:
 
 ```powershell
-dotnet run --project UserApi --launch-profile https
+dotnet run --project User.API/UserApi.csproj --launch-profile https
 ```
 
-The HTTPS launch profile listens on `https://localhost:7256`. The API redirects to HTTPS when an HTTPS endpoint is configured. Swagger is available at `/swagger` on the API address.
-`https://localhost:7256/swagger/index.html`
+Swagger is served at `https://localhost:7256/swagger`. For local development, the demo login is:
 
-In a second terminal, start the UI:
+```text
+Username: admin
+Password: TemporaryPassword!
+```
+
+These credentials are for the Development environment only. Do not use them in a deployed environment. Set all `Authentication` values through environment variables or a secret store in production; never commit production credentials. Required values are `Issuer`, `Audience`, `Username`, `Password`, `Role`, `TokenLifetimeMinutes`, and a random `SigningKey` of at least 32 characters. For example, PowerShell uses `$env:Authentication__SigningKey = '<random secret>'` and `$env:Authentication__Issuer = '<issuer>'`.
+
+Start the UI in another terminal:
 
 ```powershell
 cd User.UI
@@ -45,61 +48,56 @@ npm install
 npm run dev
 ```
 
-Vite serves the UI at `http://localhost:5173`. Set `VITE_API_URL` in `User.UI/.env` to the API base address before starting Vite. For the HTTP launch profile above, use:
+Vite listens on `http://localhost:5173`. Configure `VITE_API_URL` if the API uses a different address. Add any non-default UI origin to the API's `Cors:AllowedOrigins` configuration.
 
-```dotenv
-VITE_API_URL=http://localhost:5120
-```
+## Authentication and authorization
 
-The UI's Vite config allows the `http://localhost:5173` origin by default. If you use a different UI origin, add it to `Cors:AllowedOrigins` in the API configuration.
+`POST /api/auth/login` accepts `{ "username": "...", "password": "..." }` and returns a signed JWT with the configured lifetime. Invalid credentials receive `401 Unauthorized`. Swagger's **Authorize** button accepts the access token returned by the login endpoint and sends it as a bearer token. The UI also stores the access token in browser local storage and sends it with requests. All `/api/users` endpoints require the role configured by `Authentication:Role`; requests without a valid token receive `401`, while authenticated identities without the required role receive `403`. `UseAuthentication` runs before `UseAuthorization`.
 
-To check the UI build and run its tests:
-
-```powershell
-cd User.UI
-npm run build
-npm test
-```
-
-To run the API tests from the repository root:
-
-```powershell
-dotnet test UserApiTests
-```
+The demo credential check is configuration based and is intended only for a local interview/demo workflow. A production system should use a managed identity provider or a persistent account store with a dedicated password hashing implementation, refresh/revocation policy, rate limiting, and secret rotation.
 
 ## API
 
-All routes are under `/api/users` and use JSON request and response bodies.
+All directory routes use JSON and are under `/api/users`.
 
-| Method | Route | Purpose | Success response |
-| --- | --- | --- | --- |
-| `GET` | `/api/users` | List users, newest first | `200 OK` |
-| `GET` | `/api/users/{id}` | Get one user | `200 OK` |
-| `POST` | `/api/users` | Create a user | `201 Created` with a location header |
-| `PUT` | `/api/users/{id}` | Update a user | `200 OK` |
-| `DELETE` | `/api/users/{id}` | Delete a user | `204 No Content` |
+| Method | Route | Purpose |
+| --- | --- | --- |
+| POST | `/api/auth/login` | Exchange configured credentials for a JWT |
+| GET | `/api/users` | List records, newest first |
+| GET | `/api/users/{id}` | Retrieve one record |
+| POST | `/api/users` | Create a record |
+| PUT | `/api/users/{id}` | Update a record |
+| DELETE | `/api/users/{id}` | Delete a record |
 
-A user has these fields:
+Server-side data annotations validate requests. The API uses `UserDbContext` for persistence and projects entities into response models so database entities are not exposed directly. The SQLite database defaults to `User.API/data/app.db`; `Database:Path` can override it. The app creates the database on startup and seeds sample directory entries when empty. Disable sample seeding with `Database:Seed=false`.
 
-```json
-{
-  "id": 1,
-  "name": "AAA AAAA",
-  "age": 29,
-  "city": "Melbourne",
-  "state": "VIC",
-  "pincode": "3000"
-}
+## Tests and build
+
+From the repository root:
+
+```powershell
+dotnet test User.API/Tests/UserApiTests.csproj
+dotnet build UserApi.slnx
 ```
 
-For create and update requests, omit `id`. The API requires a name (2–100 characters), age (1–150), city and state (2–50 characters each), and a numeric pincode (4–8 digits). Invalid requests return a validation problem response; unknown IDs return `404 Not Found`, and invalid IDs return `400 Bad Request`.
+For the UI:
 
-## UI commands
+```powershell
+cd User.UI
+npm test
+npm run build
+```
 
-Run these from `User.UI`:
+## Design notes
 
-- `npm run dev` starts the development server.
-- `npm run build` type-checks the application and creates a production bundle in `dist/`.
-- `npm run preview` serves the production bundle locally.
-- `npm test` runs the Jest test suite once.
-- `npm run test:watch` runs Jest in watch mode.
+- The API owns validation and persisted state; the UI validation is an early usability aid.
+- Controllers handle HTTP concerns and call focused services through interfaces. `UserService` owns directory use cases and persistence operations; `AuthService` owns credential checks and token creation. Request and response types keep the transport contract distinct from the persistence entity.
+- Entity Framework Core's `DbContext` provides the unit-of-work/repository behavior needed here. A separate generic repository layer would add indirection without a demonstrated need.
+- `IUserService` is registered as scoped because it depends on EF Core's scoped `UserDbContext`. `IAuthService` is registered as singleton because its implementation is stateless and depends only on singleton configuration. JWT bearer middleware centralizes token validation, while the authorization attribute expresses the role policy at the controller boundary.
+- Cancellation tokens flow from HTTP requests into asynchronous database calls.
+- The API tests exercise controller behavior against isolated in-memory databases. UI tests cover validation and page behavior.
+- Naming follows .NET PascalCase for types/members and camelCase for local variables, and TypeScript's established camelCase conventions.
+
+## AI tools
+
+GitHub Copilot was used to assist with API and UI unit tests, UI styling, and code quality improvements, including consideration of edge cases.
