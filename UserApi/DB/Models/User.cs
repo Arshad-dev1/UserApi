@@ -21,8 +21,8 @@ namespace UserApi.DB.Models
         public string State { get; set; }
 
         [Required(ErrorMessage = "Pincode is required.")]
-        [StringLength(8, MinimumLength = 4, ErrorMessage = "Pincode must be between 4 and 8 characters.")]
-        [RegularExpression(@"^[0-9]{4,8}$", ErrorMessage = "Pincode must contain only digits.")]
+        [StringLength(10, MinimumLength = 4, ErrorMessage = "Pincode must be between 4 and 10 characters.")]
+        [RegularExpression(@"^[0-9]{4,10}$", ErrorMessage = "Pincode must contain only digits.")]
         public string Pincode { get; set; }
 
         public int Id { get; internal set; }
