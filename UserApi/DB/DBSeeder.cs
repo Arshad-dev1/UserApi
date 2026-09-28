@@ -9,9 +9,9 @@ namespace UserApi.DB
             if (db.Users.Any()) return;
 
             db.Users.AddRange(
-                new User { Name = "Asha Rao", Age = 29, City = "Bengaluru", State = "Karnataka", Pincode = "560001" },
-                new User { Name = "Rahul Mehta", Age = 34, City = "Mumbai", State = "Maharashtra", Pincode = "400001" },
-                new User { Name = "Priya Nair", Age = 41, City = "Kochi", State = "Kerala", Pincode = "682001" });
+                new User { Name = "AAA AAAA", Age = 29, City = "Melbourne", State = "VIC", Pincode = "3000" },
+                new User { Name = "Test User1", Age = 34, City = "Melbourne", State = "VIC", Pincode = "3001" },
+                new User { Name = "Test User2", Age = 41, City = "Sydney", State = "NSW", Pincode = "2031" });
             db.SaveChanges();
         }
 

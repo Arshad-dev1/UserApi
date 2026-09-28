@@ -3,7 +3,7 @@ using UserApi.DB.Models;
 
 namespace UserApi.DB
 {
-    public class UserDbContext : DbContext
+    public class UserDbContext(DbContextOptions<UserDbContext> options) : DbContext(options)
     {
         public DbSet<User> Users => Set<User>();
 

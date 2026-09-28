@@ -1,19 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using UserApi.DB;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// Added dbPath within data folder
 var dbPath = Path.GetFullPath(builder.Configuration["Database:Path"] ?? "data/app.db");
 Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
-builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite($"Data Source={dbPath}"));
+builder.Services.AddDbContext<UserDbContext>(o => o.UseSqlite($"Data Source={dbPath}"));
 
 
-
-// Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
@@ -26,26 +23,20 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 
 var app = builder.Build();
 
-// Create schema (and optionally seed) on startup.
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
     db.Database.EnsureCreated();
-    if (app.Configuration.GetValue("Database:Seed", true)) DbSeeder.Seed(db);
-}
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
+    if (app.Configuration.GetValue("Database:Seed", true)) DBSeeder.Seed(db);
 }
 
 app.UseHttpsRedirection();
 
+app.UseSwagger();
+app.UseSwaggerUI();
+
 app.UseAuthorization();
 app.UseExceptionHandler();
-app.UseSwagger();
-app.UseSwaggerUI();   // available at /swagger in every environment
 app.UseCors();
 
 app.MapControllers();
